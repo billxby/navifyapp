@@ -12,10 +12,14 @@ class BluetoothDeviceListEntry extends ListTile {
           onTap: onTap,
           onLongPress: onLongPress,
           enabled: enabled,
-          leading:
-              Icon(Icons.devices), // @TODO . !BluetoothClass! class aware icon
-          title: Text(device.name ?? ""),
-          subtitle: Text(device.address.toString()),
+          leading: Visibility(
+            visible: device.name == "DSD TECH HC-05",
+            child: Icon(Icons.add_box, size: 30, color: Colors.red),
+          ), // @TODO . !BluetoothClass! class aware icon
+          title: Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Text(device.name ?? "", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25))
+          ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -35,11 +39,11 @@ class BluetoothDeviceListEntry extends ListTile {
                     )
                   : Container(width: 0, height: 0),
               device.isConnected
-                  ? Icon(Icons.import_export)
+                  ? Icon(Icons.import_export, size: 35)
                   : Container(width: 0, height: 0),
-              device.isBonded
-                  ? Icon(Icons.link)
-                  : Container(width: 0, height: 0),
+              // device.isBonded
+              //     ? Icon(Icons.link)
+              //     : Container(width: 0, height: 0),
             ],
           ),
         );

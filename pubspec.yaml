@@ -1,10 +1,8 @@
 # Does and/or CAN the name be updated?
-name: flutter_bluetooth_serial_example
+name: Navify
 version: 0.5.0
-description: Demonstrates how to use the `flutter_bluetooth_serial_ble` plugin.
-authors:
-  - Patryk Ludwikowski <patryk.ludwikowski.7@gmail.com>
-homepage: https://github.com/Erhannis/flutter_bluetooth_serial_ble/tree/master/example/
+description: Navigation with NFC tags
+
 
 environment:
   sdk: ">=2.12.0 <3.0.0"
@@ -15,15 +13,17 @@ dependencies:
 
   scoped_model: ^2.0.0-nullsafety.0
   cupertino_icons: ^1.0.3
+  flutter_bluetooth_serial_ble: ^0.5.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_bluetooth_serial_ble:
-    path: ../
   integration_test:
     sdk: flutter
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/hero.jpg

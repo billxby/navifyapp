@@ -121,7 +121,7 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
         .toList();
     return Scaffold(
       appBar: AppBar(
-        title: Text('Select device'),
+        title: Center(child: Text('Select device', style: Theme.of(context).textTheme.headlineMedium)),
         actions: <Widget>[
           _isDiscovering
               ? FittedBox(
@@ -129,13 +129,13 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
                     margin: new EdgeInsets.all(16.0),
                     child: CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.white,
+                        Colors.black,
                       ),
                     ),
                   ),
                 )
               : IconButton(
-                  icon: Icon(Icons.replay),
+                  icon: Icon(Icons.replay, size: 40),
                   onPressed: _restartDiscovery,
                 )
         ],
