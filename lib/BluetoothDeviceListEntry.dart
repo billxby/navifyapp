@@ -14,7 +14,7 @@ class BluetoothDeviceListEntry extends ListTile {
           enabled: enabled,
           leading: Visibility(
             visible: device.name == "DSD TECH HC-05",
-            child: Icon(Icons.add_box, size: 30, color: Colors.red),
+            child: Icon(Icons.add_box, size: 30, color: Color(0xff29DDE9)),
           ), // @TODO . !BluetoothClass! class aware icon
           title: Padding(
             padding: EdgeInsets.symmetric(vertical: 10),

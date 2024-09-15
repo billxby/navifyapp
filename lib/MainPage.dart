@@ -89,12 +89,18 @@ class _MainPage extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Center(child: Text('Navify')),
+        title: const Center(child: Text('')),
       ),
       body: Container(
         child: Column(
           children: <Widget>[
-            Image.asset("assets/hero.jpg"),
+            Spacer(flex: 1),
+            Column(
+              children: [
+                Image.asset("assets/hero.png", scale: 1.4,),
+                Text("We make navigation accessible", style: TextStyle(fontSize: 24),)
+              ],
+            ),
             Spacer(flex: 5),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

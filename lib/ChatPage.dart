@@ -1,17 +1,29 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:typed_data';
 
+import 'package:Navify/VoiceFlow.dart';
+import 'package:Navify/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial_ble/flutter_bluetooth_serial_ble.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sliding_up_panel/sliding_up_panel.dart';
 
-class ChatPage extends StatefulWidget {
+import 'NavigationPage.dart';
+import 'Tags.dart';
+import 'class/location.dart';
+import 'main.dart';
+
+
+class ChatPage extends ConsumerStatefulWidget {
   final BluetoothDevice server;
 
   const ChatPage({required this.server});
 
   @override
-  _ChatPage createState() => new _ChatPage();
+  ConsumerState<ChatPage> createState() => _ChatPageState();
 }
 
 class _Message {
@@ -21,15 +33,15 @@ class _Message {
   _Message(this.whom, this.text);
 }
 
-class _ChatPage extends State<ChatPage> {
+class _ChatPageState extends ConsumerState<ChatPage> {
   static final clientID = 0;
   BluetoothConnection? connection;
 
   List<_Message> messages = List<_Message>.empty(growable: true);
   String _messageBuffer = '';
 
-  final TextEditingController textEditingController =
-      new TextEditingController();
+  final TextEditingController textEditingController = new TextEditingController();
+  InAppWebViewController? webViewController;
   final ScrollController listScrollController = new ScrollController();
 
   bool isConnecting = true;
@@ -69,6 +81,7 @@ class _ChatPage extends State<ChatPage> {
       print('Cannot connect, exception occured');
       print(error);
     });
+
   }
 
   @override
@@ -85,80 +98,113 @@ class _ChatPage extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Row> list = messages.map((_message) {
-      return Row(
-        children: <Widget>[
-          Container(
-            child: Text(
-                (text) {
-                  return text == '/shrug' ? '¯\\_(ツ)_/¯' : text;
-                }(_message.text.trim()),
-                style: TextStyle(color: Colors.white)),
-            padding: EdgeInsets.all(12.0),
-            margin: EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
-            width: 222.0,
-            decoration: BoxDecoration(
-                color:
-                    _message.whom == clientID ? Colors.blueAccent : Colors.grey,
-                borderRadius: BorderRadius.circular(7.0)),
-          ),
-        ],
-        mainAxisAlignment: _message.whom == clientID
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-      );
-    }).toList();
+    final location = ref.watch(selectedLocationNotifier);
 
     final serverName = widget.server.name ?? "Unknown";
     return Scaffold(
       appBar: AppBar(
           title: (isConnecting
-              ? Text('Connecting chat to ' + serverName + '...')
+              ? Text('Connecting to ' + serverName, style: Theme.of(context).textTheme.headlineMedium)
               : isConnected
-                  ? Text('Live chat with ' + serverName)
-                  : Text('Chat log with ' + serverName))),
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            Flexible(
-              child: ListView(
-                  padding: const EdgeInsets.all(12.0),
-                  controller: listScrollController,
-                  children: list),
-            ),
-            Row(
-              children: <Widget>[
-                Flexible(
-                  child: Container(
-                    margin: const EdgeInsets.only(left: 16.0),
-                    child: TextField(
-                      style: const TextStyle(fontSize: 15.0),
-                      controller: textEditingController,
-                      decoration: InputDecoration.collapsed(
-                        hintText: isConnecting
-                            ? 'Wait until connected...'
-                            : isConnected
-                                ? 'Type your message...'
-                                : 'Chat got disconnected',
-                        hintStyle: const TextStyle(color: Colors.grey),
-                      ),
-                      enabled: isConnected,
+                  ? Text(location.name, style: Theme.of(context).textTheme.headlineMedium)
+                  : Text('Disconnected: ' + serverName, style: Theme.of(context).textTheme.headlineMedium))),
+      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+      body: SlidingUpPanel(
+        boxShadow: [],
+        color: Colors.transparent,
+        panel: Container(
+          decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.background,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20), topRight: Radius.circular(20),
+              )
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 25, bottom: 50),
+                  child: Container(width: 100, height: 5, 
+                    decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: const BorderRadius.all(Radius.circular(20))
                     ),
                   ),
                 ),
-                Container(
-                  margin: const EdgeInsets.all(8.0),
-                  child: IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: isConnected
-                          ? () => _sendMessage(textEditingController.text)
-                          : null),
-                ),
-              ],
-            )
-          ],
+              ),
+              Text(location.name, style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold)),
+              Text(location.description, style: Theme.of(context).textTheme.bodyLarge),
+              SizedBox(height: 25),
+              Visibility(
+                visible: location.x != 0,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        title: Text("Emergency Exit", style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.red)),
+                        trailing: Icon(Icons.arrow_forward_ios_outlined),
+                        onTap: () async {
+                          Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) {
+                                  return NavigationPage(server: widget.server, target: "s_e27ab7d3f9536d9f",);
+                                },
+                              )
+                          ).then((value) => setState(() {
+                            webViewController?.loadUrl(urlRequest: URLRequest(url: WebUri("https://mapped-in-navify.vercel.app/view/${location.x}/${location.y}")));
+                          }));
+                        },
+                      ),
+                      Divider(),
+                      ListTile(
+                        title: Text("Assistant", style: Theme.of(context).textTheme.titleLarge),
+                        trailing: Icon(Icons.arrow_forward_ios_outlined),
+                        onTap: () {
+                          Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) {
+                                  return VoiceFlowPage(server: widget.server,);
+                                },
+                              )
+                          ).then((value) => setState(() {
+                            webViewController?.loadUrl(urlRequest: URLRequest(url: WebUri("https://mapped-in-navify.vercel.app/view/${location.x}/${location.y}")));
+                          }));
+                        },
+                      ),
+                      Divider(),
+                      ListTile(
+                        title: Text("Navigation", style: Theme.of(context).textTheme.titleLarge),
+                        trailing: Icon(Icons.arrow_forward_ios_outlined),
+                        onTap: () {
+                          Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) {
+                                  return NavigationPage(server: widget.server,);
+                                },
+                              )
+                          ).then((value) => setState(() {
+                            webViewController?.loadUrl(urlRequest: URLRequest(url: WebUri("https://mapped-in-navify.vercel.app/view/${location.x}/${location.y}")));
+                          }));
+                        },
+                      ),
+                    ],
+                  )
+              )
+            ],
+          )
         ),
-      ),
+        body: SafeArea(
+          child: (location.x != 0) ? InAppWebView(
+            initialUrlRequest: URLRequest(url: WebUri("https://mapped-in-navify.vercel.app/view/${location.x}/${location.y}")),
+            onWebViewCreated: (controller) {
+              webViewController = controller;
+            },
+          ) : Center(
+            child: Text("Scan to start", style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold),)
+          )
+        ),
+      )
     );
   }
 
@@ -191,6 +237,36 @@ class _ChatPage extends State<ChatPage> {
     String dataString = String.fromCharCodes(buffer);
     int index = buffer.indexOf(13);
     if (~index != 0) {
+      if (_messageBuffer.indexOf("*") >= 0 && _messageBuffer.indexOf("&") >= 0) {
+        print(_messageBuffer);
+        String trim = _messageBuffer.substring(0, _messageBuffer.indexOf("&"));
+        trim = trim.substring(trim.lastIndexOf("*")+1);
+
+        // final trim = _messageBuffer.substring(_messageBuffer.lastIndexOf("*")+1, _messageBuffer.indexOf("&"));
+
+        setState(() {
+          try {
+            var data = jsonDecode(trim);
+            var id = data["id"];
+
+            ref.read(selectedLocationNotifier.notifier).setLocation(Location(
+              id: id,
+              name: tags[id]["name"],
+              x: tags[id]["location"]["latitude"],
+              y: tags[id]["location"]["longitude"],
+              description: tags[id]["information"]
+            ));
+
+            webViewController?.loadUrl(urlRequest: URLRequest(url: WebUri("https://mapped-in-navify.vercel.app/view/${ref.read(selectedLocationNotifier).x}/${ref.read(selectedLocationNotifier).y}")));
+
+
+          } catch(e) {
+            print("Did not decode correctly");
+          }
+        });
+      }
+
+
       setState(() {
         messages.add(
           _Message(
