@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial_ble/flutter_bluetooth_serial_ble.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 import 'NavigationPage.dart';
@@ -36,6 +37,9 @@ class _Message {
 class _ChatPageState extends ConsumerState<ChatPage> {
   static final clientID = 0;
   BluetoothConnection? connection;
+  late FlutterTts flutterTts;
+
+  bool mainPage = true;
 
   List<_Message> messages = List<_Message>.empty(growable: true);
   String _messageBuffer = '';
@@ -60,6 +64,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         isConnecting = false;
         isDisconnecting = false;
       });
+
+      flutterTts = FlutterTts();
+      flutterTts.awaitSpeakCompletion(true);
+      flutterTts.setSpeechRate(0.5);// Start the conversation with a launch request
 
       connection!.input!.listen(_onDataReceived).onDone(() {
         // Example: Detect which side closed the connection
@@ -145,6 +153,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                         title: Text("Emergency Exit", style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.red)),
                         trailing: Icon(Icons.arrow_forward_ios_outlined),
                         onTap: () async {
+                          mainPage = false;
+
                           Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) {
@@ -153,6 +163,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                               )
                           ).then((value) => setState(() {
                             webViewController?.loadUrl(urlRequest: URLRequest(url: WebUri("https://mapped-in-navify.vercel.app/view/${location.x}/${location.y}")));
+                            mainPage = true;
                           }));
                         },
                       ),
@@ -177,6 +188,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                         title: Text("Navigation", style: Theme.of(context).textTheme.titleLarge),
                         trailing: Icon(Icons.arrow_forward_ios_outlined),
                         onTap: () {
+                          mainPage = false;
+
                           Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) {
@@ -185,6 +198,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                               )
                           ).then((value) => setState(() {
                             webViewController?.loadUrl(urlRequest: URLRequest(url: WebUri("https://mapped-in-navify.vercel.app/view/${location.x}/${location.y}")));
+                            mainPage = true;
                           }));
                         },
                       ),
@@ -249,6 +263,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             var data = jsonDecode(trim);
             var id = data["id"];
 
+
+
             ref.read(selectedLocationNotifier.notifier).setLocation(Location(
               id: id,
               name: tags[id]["name"],
@@ -256,6 +272,11 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               y: tags[id]["location"]["longitude"],
               description: tags[id]["information"]
             ));
+
+            if (mainPage) {
+              flutterTts.stop();
+              flutterTts.speak(tags[id]["information"]);
+            }
 
             webViewController?.loadUrl(urlRequest: URLRequest(url: WebUri("https://mapped-in-navify.vercel.app/view/${ref.read(selectedLocationNotifier).x}/${ref.read(selectedLocationNotifier).y}")));
 
